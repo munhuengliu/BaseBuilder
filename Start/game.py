@@ -1,7 +1,7 @@
 
 class market(object):
     def __init__ (self):
-        pass
+        self.turn = 1
     def build_generic(self,player):
         item = raw_input("Build What?")
         if item == "L":
@@ -61,6 +61,10 @@ class market(object):
                 return "Need 5 Units to Sell"
         else:
             return "Not Recognised"
+    def end_turn(self,player):
+        for x in player.buildings:
+            x.production(player)
+        self.turn+=1
 
 class army_unit(object):
     def __init__(self):
@@ -135,17 +139,23 @@ running = True
 objPlayer = player()
 objMarket = market()
 
-i=1
-
 while running ==True:
-    print "TURN " + str(i)
+
+#THIS IS THE VIEW CONTROLLER!
+    
+    #display info
+    print "TURN " + str(objMarket.turn)
     print "GOLD: " + str(objPlayer.gold)
     print "WOOD: " + str(objPlayer.wood)
     print "STONE: " + str(objPlayer.stone)
     print "RICE: " + str(objPlayer.rice)
-
-    action = raw_input("Player Input >>>")
+    print objPlayer.show_buildings()
     
+    #wait for button press
+    action = raw_input("Player Input >>>")
+
+    #process depending on button press
+    #this can probably be broken to different functions
     if action == "BUILD":
         print str(objMarket.build_generic(objPlayer))
     elif action == "SELL":
@@ -156,10 +166,7 @@ while running ==True:
             print "You Win"
             running = False
         else:
-            for x in objPlayer.buildings:
-                x.production(objPlayer)
-            print objPlayer.show_buildings()
-            i+=1
+            objMarket.end_turn(objPlayer)
     else:
         print "Command Not Recognised"
     
