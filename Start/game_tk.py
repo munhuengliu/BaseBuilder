@@ -8,11 +8,18 @@ def end_turn():
     objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
 def build(item):
     objMarket.build_generic(objPlayer,item)
-    objGUI.update_bd(objPlayer.bd_count("L"),objPlayer.bd_count("S"),objPlayer.bd_count("R"))
+    objGUI.update_bd(objPlayer.bd_count("L"),objPlayer.bd_count("S"),objPlayer.bd_count("R"),objPlayer.bd_count("B"))
     objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
 def sell(item):
     objMarket.sell_generic(objPlayer,item)
     objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
+def recruit_army():
+    objMarket.recruit_army(objPlayer)
+    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
+    objGUI.update_army(objPlayer.army_count("S"))
+def release_army():
+    objMarket.release_army(objPlayer)
+    objGUI.update_army(objPlayer.army_count("S"))
     
 #Main GUI
 class mainGUI(object):
@@ -23,60 +30,83 @@ class mainGUI(object):
         self.frame_stats = Canvas(self.interface, bg="red", height=100, width=130)
         self.frame_buildings = Canvas(self.interface, bg="red", height=100, width=130)
         self.frame_commands = LabelFrame(self.interface)
-        self.frame_canvas = Canvas(self.interface, bg="black", height = 200, width = 170)
+        self.frame_army = Canvas(self.interface, bg="red", height=50, width=170)
+        self.frame_canvas = Canvas(self.interface, bg="black", height = 100, width = 170)
         #placement on overall window/interface
         self.frame_turn.grid(column = 0, row = 0, columnspan = 3)
         self.frame_stats.grid(column = 1, row = 1)
         self.frame_commands.grid(column = 0, row = 1, rowspan = 2,sticky = E)
         self.frame_buildings.grid(column = 1, row = 2)
-        self.frame_canvas.grid(column = 2, row = 1, rowspan = 2, sticky = N+S)
+        self.frame_army.grid(column = 2,row=1)
+        self.frame_army.grid(column = 2,row=1, sticky = N)
+        self.frame_canvas.grid(column = 2, row = 2, rowspan=2, sticky = S)
         #text based tag for turn number
         self.turn = self.frame_turn.create_text(200,10, text="TURN: " + str(objMarket.turn))
         #inset list of buildings
         self.lumbermills = self.frame_buildings.create_text(10,10, anchor = NW, text="LUMBERMILLS: " + str(objPlayer.bd_count("L")))
         self.stonemills = self.frame_buildings.create_text(10,30, anchor = NW, text="STONEMILLS: " + str(objPlayer.bd_count("S")))
         self.ricefields = self.frame_buildings.create_text(10,50, anchor = NW, text="RICEFIELDS: " + str(objPlayer.bd_count("R")))
+        self.barracks = self.frame_buildings.create_text(10,70, anchor = NW, text="UNITS: 0")
+        self.army = self.frame_army.create_text(10,10, anchor=NW, text = "")
         #text based tags for player's economy
         self.gold = self.frame_stats.create_text(10,10, anchor = NW, text="GOLD: " + str(objPlayer.gold))
         self.wood = self.frame_stats.create_text(10,30, anchor = NW, text="WOOD: " + str(objPlayer.wood))
         self.stone = self.frame_stats.create_text(10,50, anchor = NW, text="STONE: " + str(objPlayer.stone))
         self.rice = self.frame_stats.create_text(10,70, anchor = NW, text="RICE: " + str(objPlayer.rice))        
         #buttons and placement for player commands
+        self.button4 = Button(self.frame_commands, text="ARMY", state = DISABLED, command = self.show_army_menu)
         self.button1 = Button(self.frame_commands, text="BUILD", command = self.show_build_menu)
         self.button2 = Button(self.frame_commands, text="SELL", command = self.show_sell_menu)
         self.button3 = Button(self.frame_commands, text="END TURN", command = end_turn)
-        self.button1.grid(column = 0, row = 0, sticky=W+E)
-        self.button2.grid(column = 0, row = 1, sticky=W+E)
-        self.button3.grid(column = 0, row = 2, sticky=W+E)
+        self.button4.grid(column = 0, row = 0, sticky=W+E)
+        self.button1.grid(column = 0, row = 1, sticky=W+E)
+        self.button2.grid(column = 0, row = 2, sticky=W+E)
+        self.button3.grid(column = 0, row = 3, sticky=W+E)
     def show_build_menu(self):
         self.top = Toplevel()
         self.frame_sub_commands = Frame(self.top)
         self.frame_sub_commands.grid(column=0, row=0)
-        self.button1 = Button(self.frame_sub_commands, text="LUMBERMILL", command= lambda: build("L"))
-        self.button2 = Button(self.frame_sub_commands, text="STONEMILL", command = lambda: build("S"))
-        self.button3 = Button(self.frame_sub_commands, text="RICEFIELD", command = lambda: build("R"))
-        self.button1.grid(column = 0, row = 0, sticky=W+E)
-        self.button2.grid(column = 0, row = 1, sticky=W+E)
-        self.button3.grid(column = 0, row = 2, sticky=W+E)
+        self.bbutton1 = Button(self.frame_sub_commands, text="LUMBERMILL", command= lambda: build("L"))
+        self.bbutton2 = Button(self.frame_sub_commands, text="STONEMILL", command = lambda: build("S"))
+        self.bbutton3 = Button(self.frame_sub_commands, text="RICEFIELD", command = lambda: build("R"))
+        self.bbutton4 = Button(self.frame_sub_commands, text="BARRACKS", command = lambda: build("B"))
+        self.bbutton1.grid(column = 0, row = 0, sticky=W+E)
+        self.bbutton2.grid(column = 0, row = 1, sticky=W+E)
+        self.bbutton3.grid(column = 0, row = 2, sticky=W+E)
+        self.bbutton4.grid(column = 0, row = 3, sticky=W+E)
     def show_sell_menu(self):
         self.top = Toplevel()        
         self.frame_sub_commands = Frame(self.top)
         self.frame_sub_commands.grid(column=0, row=0)
-        self.button1 = Button(self.frame_sub_commands, text="WOOD", command= lambda: sell("W"))
-        self.button2 = Button(self.frame_sub_commands, text="STONE", command = lambda: sell("S"))
-        self.button3 = Button(self.frame_sub_commands, text="RICE", command = lambda: sell("R"))
-        self.button1.grid(column = 0, row = 0, sticky=W+E)
-        self.button2.grid(column = 0, row = 1, sticky=W+E)
-        self.button3.grid(column = 0, row = 2, sticky=W+E)
+        self.sbutton1 = Button(self.frame_sub_commands, text="WOOD", command= lambda: sell("W"))
+        self.sbutton2 = Button(self.frame_sub_commands, text="STONE", command = lambda: sell("S"))
+        self.sbutton3 = Button(self.frame_sub_commands, text="RICE", command = lambda: sell("R"))
+        self.sbutton1.grid(column = 0, row = 0, sticky=W+E)
+        self.sbutton2.grid(column = 0, row = 1, sticky=W+E)
+        self.sbutton3.grid(column = 0, row = 2, sticky=W+E)
+    def show_army_menu(self):
+        self.top = Toplevel()
+        self.frame_sub_commands = Frame(self.top)
+        self.frame_sub_commands.grid(column=0,row=0)
+        self.abutton1 = Button(self.frame_sub_commands, text="RECRUIT", command= recruit_army)
+        self.abutton2 = Button(self.frame_sub_commands, text="RELEASE", command = release_army)
+        self.abutton1.grid(column = 0, row = 0, sticky=W+E)
+        self.abutton2.grid(column = 0, row = 1, sticky=W+E)
     def update_player(self,p_g,p_w,p_s,p_r):
         self.frame_stats.itemconfig(self.gold, text = "GOLD: " + str(p_g))
         self.frame_stats.itemconfig(self.wood, text = "WOOD: " + str(p_w))
         self.frame_stats.itemconfig(self.stone, text = "STONE: " + str(p_s))
         self.frame_stats.itemconfig(self.rice, text = "RICE: " + str(p_r))
-    def update_bd(self,p_l,p_s,p_r):
+    def update_bd(self,p_l,p_s,p_r,p_b):
+        self.top.withdraw()
         self.frame_buildings.itemconfig(self.lumbermills, text = "LUMBERMILLS: " + str(p_l))
         self.frame_buildings.itemconfig(self.stonemills, text = "STONEMILLS: " + str(p_s))
         self.frame_buildings.itemconfig(self.ricefields, text = "RICEFIELDS: " + str(p_r))
+        if p_b !=0:
+            self.frame_buildings.itemconfig(self.barracks, text = "BARRACKS")
+            self.button4.config(state = NORMAL)
+    def update_army(self,p_a):
+        self.frame_army.itemconfig(self.army, text = "UNITS: " + str(p_a))
     def end_turn(self,i):
         self.frame_turn.itemconfig(self.turn, text = "TURN: " + str(i))
     def show_screen(self):
@@ -117,6 +147,16 @@ class market(object):
                 return "RICEFIELD BUILT"
             else:
                 return "NOT ENOUGH RESOURCES TO BUILD RICEFIELD"
+        elif item == "B":
+            objBk = barracks("B",30,30,30,0,0,0)
+            if objBk.check_cost(player) == True:
+                player.gold -= objBk.cost_gold
+                player.wood -= objBk.cost_wood
+                player.stone -= objBk.cost_stone
+                player.buildings.append(objBk)
+                return "RICEFIELD BUILT"
+            else:
+                return "NOT ENOUGH RESOURCES TO BUILD BARRACKS"
         else:
             return "Not Recognised"
     def sell_generic(self,player,item):
@@ -143,14 +183,37 @@ class market(object):
                 return "Need 5 Units to Sell"
         else:
             return "Not Recognised"
+    def recruit_army(self,player):
+        #check enough resources are available
+        if player.gold >=10 and player.rice >=10:
+            objUnit = army_unit()
+            player.army.append(objUnit)
+            player.gold -=10
+            player.rice -=10
+            return "Unit Purchased"
+        else:
+            return "Not enough resources"
+    def release_army(self,player):
+        if len(player.army) == 0:
+            pass
+        else:
+            del player.army[len(player.army)-1]
     def end_turn(self,player):
         for x in player.buildings:
             x.production(player)
         self.turn+=1
+    def upkeep(self,player):
+        pass
 
 class army_unit(object):
     def __init__(self):
-        pass
+        self.type = "S"
+        self.HP = 10
+        self.ATK = 10
+        self.DEF = 10
+        self.upkeep_rice= 5
+        self.cost_gold = 10
+        self.cost_rice = 10
 
 class building(object):
     def __init__(self,strName,cost_wood,cost_stone,cost_gold,prod_wood,prod_stone,prod_rice):
@@ -165,8 +228,6 @@ class building(object):
         player.wood += self.prod_wood
         player.stone += self.prod_stone
         player.rice += self.prod_rice
-    def upkeep(self,player):
-        pass
     def check_cost(self,player):
         if self.cost_gold <= player.gold:
             if self.cost_wood <= player.wood:            
@@ -181,48 +242,45 @@ class building(object):
 
 class lumbermill(building):
     def __init(self):
-        building.__init__(20,10,10,10,0)
+        building.__init__()
 
 class stonemill(building):
     def __init(self):
-        building.__init__(10,20,10,0,10)
+        building.__init__()
 
 class rice_field(building):
     def __init(self):
-        building.__init__(20,20,20,0,0,10)
+        building.__init__()
         
 class barracks(building):
     def __init(self):
-        building.__init__(30,30,20,0,0)
+        building.__init__()
     def hire_units(self,player):
+        pass
+    def upkeep(self):
+        print "CALCULATING UPKEEP"
         pass
     
 class player(object):
     def __init__(self):
-        self.gold = 50
-        self.wood = 50
-        self.stone = 50
-        self.rice = 0
+        self.gold = 500
+        self.wood = 500
+        self.stone = 500
+        self.rice = 500
         self.buildings = []
         self.army = []
-    def show_buildings(self):
-        #count L,S,R
-        strBuildings = ""
-        for x in self.buildings:
-            strBuildings = strBuildings + str(x.type) + ","
-        return strBuildings
     def bd_count(self,i):
         x = 0
         for z in self.buildings:
             if str(z.type) == str(i):
                 x+=1
         return x
-                                    
-    def upkeep(self):
-        #Upkeep of rice
-        #if not enough rice, no production
-        #if rice, but not enough for total, then reduced production
-        pass
+    def army_count(self,i):
+        x = 0
+        for z in self.army:
+            if str(z.type) == str(i):
+                x+=1
+        return x                    
 
 objPlayer = player()
 objMarket = market()
