@@ -3,23 +3,26 @@ from Tkinter import *
 
 #these routines tie game model and GUI together
 def end_turn():
+    objMarket.upkeep_calc(objPlayer)
     objMarket.end_turn(objPlayer)
     objGUI.end_turn(objMarket.turn)
-    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
+    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice,objPlayer.prod_update(),objPlayer.upkeep_update())
+    objGUI.update_army(objPlayer.army_count("S"), objPlayer.hunger_count())
 def build(item):
     objMarket.build_generic(objPlayer,item)
     objGUI.update_bd(objPlayer.bd_count("L"),objPlayer.bd_count("S"),objPlayer.bd_count("R"),objPlayer.bd_count("B"))
-    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
+    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice,objPlayer.prod_update(),objPlayer.upkeep_update())
 def sell(item):
     objMarket.sell_generic(objPlayer,item)
-    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
+    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice,objPlayer.prod_update(),objPlayer.upkeep_update())
 def recruit_army():
     objMarket.recruit_army(objPlayer)
-    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice)
-    objGUI.update_army(objPlayer.army_count("S"))
+    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice,objPlayer.prod_update(),objPlayer.upkeep_update())
+    objGUI.update_army(objPlayer.army_count("S"), objPlayer.hunger_count())
 def release_army():
     objMarket.release_army(objPlayer)
-    objGUI.update_army(objPlayer.army_count("S"))
+    objGUI.update_player(objPlayer.gold,objPlayer.wood,objPlayer.stone,objPlayer.rice,objPlayer.prod_update(),objPlayer.upkeep_update())
+    objGUI.update_army(objPlayer.army_count("S"),objPlayer.hunger_count())
     
 #Main GUI
 class mainGUI(object):
@@ -27,6 +30,7 @@ class mainGUI(object):
         self.interface = Tk()
         #Containers for various information
         self.frame_turn = Canvas(self.interface, bg="blue", height = 20, width = 400)
+        self.frame_economy = Canvas(self.interface, bg="red", height = 80, width = 400)
         self.frame_stats = Canvas(self.interface, bg="red", height=100, width=130)
         self.frame_buildings = Canvas(self.interface, bg="red", height=100, width=130)
         self.frame_commands = LabelFrame(self.interface)
@@ -34,20 +38,25 @@ class mainGUI(object):
         self.frame_canvas = Canvas(self.interface, bg="black", height = 100, width = 170)
         #placement on overall window/interface
         self.frame_turn.grid(column = 0, row = 0, columnspan = 3)
-        self.frame_stats.grid(column = 1, row = 1)
-        self.frame_commands.grid(column = 0, row = 1, rowspan = 2,sticky = E)
-        self.frame_buildings.grid(column = 1, row = 2)
-        self.frame_army.grid(column = 2,row=1)
-        self.frame_army.grid(column = 2,row=1, sticky = N)
-        self.frame_canvas.grid(column = 2, row = 2, rowspan=2, sticky = S)
+        self.frame_economy.grid(column = 0, row = 1, columnspan = 3)
+        self.frame_stats.grid(column = 1, row = 2)
+        self.frame_commands.grid(column = 0, row = 2, rowspan = 2,sticky = E)
+        self.frame_buildings.grid(column = 1, row = 3)
+        self.frame_army.grid(column = 2,row=2)
+        self.frame_army.grid(column = 2,row=2, sticky = N)
+        self.frame_canvas.grid(column = 2, row = 3, rowspan=2, sticky = S)
         #text based tag for turn number
         self.turn = self.frame_turn.create_text(200,10, text="TURN: " + str(objMarket.turn))
-        #inset list of buildings
+        #text for economy
+        self.production = self.frame_economy.create_text(100,10, text="PRODUCTION: 0")
+        self.upkeep = self.frame_economy.create_text(300,10, text="UPKEEP: 0")
+        #text list of buildings
         self.lumbermills = self.frame_buildings.create_text(10,10, anchor = NW, text="LUMBERMILLS: " + str(objPlayer.bd_count("L")))
         self.stonemills = self.frame_buildings.create_text(10,30, anchor = NW, text="STONEMILLS: " + str(objPlayer.bd_count("S")))
         self.ricefields = self.frame_buildings.create_text(10,50, anchor = NW, text="RICEFIELDS: " + str(objPlayer.bd_count("R")))
         self.barracks = self.frame_buildings.create_text(10,70, anchor = NW, text="UNITS: 0")
         self.army = self.frame_army.create_text(10,10, anchor=NW, text = "")
+        self.hunger = self.frame_army.create_text(10,30, anchor=NW, text = "")
         #text based tags for player's economy
         self.gold = self.frame_stats.create_text(10,10, anchor = NW, text="GOLD: " + str(objPlayer.gold))
         self.wood = self.frame_stats.create_text(10,30, anchor = NW, text="WOOD: " + str(objPlayer.wood))
@@ -92,11 +101,14 @@ class mainGUI(object):
         self.abutton2 = Button(self.frame_sub_commands, text="RELEASE", command = release_army)
         self.abutton1.grid(column = 0, row = 0, sticky=W+E)
         self.abutton2.grid(column = 0, row = 1, sticky=W+E)
-    def update_player(self,p_g,p_w,p_s,p_r):
+    def update_player(self,p_g,p_w,p_s,p_r,i_r,x_r):
         self.frame_stats.itemconfig(self.gold, text = "GOLD: " + str(p_g))
         self.frame_stats.itemconfig(self.wood, text = "WOOD: " + str(p_w))
         self.frame_stats.itemconfig(self.stone, text = "STONE: " + str(p_s))
         self.frame_stats.itemconfig(self.rice, text = "RICE: " + str(p_r))
+        self.frame_economy.itemconfig(self.production, text = "PRODUCTION: " + str(i_r))
+        self.frame_economy.itemconfig(self.upkeep , text = "UPKEEP: " + str(x_r))
+
     def update_bd(self,p_l,p_s,p_r,p_b):
         self.top.withdraw()
         self.frame_buildings.itemconfig(self.lumbermills, text = "LUMBERMILLS: " + str(p_l))
@@ -105,8 +117,12 @@ class mainGUI(object):
         if p_b !=0:
             self.frame_buildings.itemconfig(self.barracks, text = "BARRACKS")
             self.button4.config(state = NORMAL)
-    def update_army(self,p_a):
+    def update_army(self,p_a,p_h):
         self.frame_army.itemconfig(self.army, text = "UNITS: " + str(p_a))
+        if int(p_h) > 0:
+            self.frame_army.itemconfig(self.hunger, text = str(p_h) + "HUNGRY UNITS")
+        else:
+            self.frame_army.itemconfig(self.hunger, text = "")
     def end_turn(self,i):
         self.frame_turn.itemconfig(self.turn, text = "TURN: " + str(i))
     def show_screen(self):
@@ -118,7 +134,7 @@ class market(object):
         self.turn = 1
     def build_generic(self,player,item):
         if item == "L":
-            objLM = lumbermill("L",20,10,10,10,0,0)
+            objLM = lumbermill("L",20,10,10,10,0,0,0)
             if objLM.check_cost(player) == True:
                 player.gold -= objLM.cost_gold
                 player.wood -= objLM.cost_wood
@@ -128,7 +144,7 @@ class market(object):
             else:
                 return "NOT ENOUGH RESOURCES TO BUILD LUMBERMILL"
         elif item == "S":
-            objSM = stonemill("S",10,20,10,0,10,0)
+            objSM = stonemill("S",10,20,10,0,10,0,0)
             if objSM.check_cost(player) == True:
                 player.gold -= objSM.cost_gold
                 player.wood -= objSM.cost_wood
@@ -138,7 +154,7 @@ class market(object):
             else:
                 return "NOT ENOUGH RESOURCES TO BUILD STONEMILL"
         elif item == "R":
-            objRF = rice_field("R",20,20,20,0,0,10)
+            objRF = rice_field("R",20,20,20,0,0,10,0)
             if objRF.check_cost(player) == True:
                 player.gold -= objRF.cost_gold
                 player.wood -= objRF.cost_wood
@@ -148,7 +164,7 @@ class market(object):
             else:
                 return "NOT ENOUGH RESOURCES TO BUILD RICEFIELD"
         elif item == "B":
-            objBk = barracks("B",30,30,30,0,0,0)
+            objBk = barracks("B",30,30,30,0,0,0,10)
             if objBk.check_cost(player) == True:
                 player.gold -= objBk.cost_gold
                 player.wood -= objBk.cost_wood
@@ -199,11 +215,17 @@ class market(object):
         else:
             del player.army[len(player.army)-1]
     def end_turn(self,player):
+        #Calc Production
         for x in player.buildings:
             x.production(player)
         self.turn+=1
-    def upkeep(self,player):
-        pass
+    def upkeep_calc(self,player):
+        for x in player.army:
+            x.eat_rice(player)
+        for x in player.buildings:
+            x.eat_rice(player)
+        player.defect_army()
+
 
 class army_unit(object):
     def __init__(self):
@@ -214,9 +236,20 @@ class army_unit(object):
         self.upkeep_rice= 5
         self.cost_gold = 10
         self.cost_rice = 10
+        self.hungry = False
+        self.runaway = False
+    def eat_rice(self,player):
+        if self.hungry == True:
+            self.runaway = True
+        if player.rice < self.upkeep_rice:
+            self.hungry = True
+        else:
+            self.hungry = False
+        player.rice -=self.upkeep_rice
+
 
 class building(object):
-    def __init__(self,strName,cost_wood,cost_stone,cost_gold,prod_wood,prod_stone,prod_rice):
+    def __init__(self,strName,cost_wood,cost_stone,cost_gold,prod_wood,prod_stone,prod_rice,upkeep_rice):
         self.type = strName
         self.cost_wood = cost_wood
         self.cost_stone = cost_stone
@@ -224,10 +257,17 @@ class building(object):
         self.prod_wood = prod_wood
         self.prod_stone = prod_stone
         self.prod_rice = prod_rice
+        self.upkeep_rice = upkeep_rice
     def production(self,player):
-        player.wood += self.prod_wood
-        player.stone += self.prod_stone
-        player.rice += self.prod_rice
+        if player.rice < 0:
+            multiplier = 0.8
+        else:
+            multiplier = 1
+        player.wood += self.prod_wood*multiplier
+        player.stone += self.prod_stone*multiplier
+        player.rice += self.prod_rice*multiplier
+    def eat_rice(self,player):
+        player.rice-= self.upkeep_rice
     def check_cost(self,player):
         if self.cost_gold <= player.gold:
             if self.cost_wood <= player.wood:            
@@ -266,7 +306,7 @@ class player(object):
         self.gold = 500
         self.wood = 500
         self.stone = 500
-        self.rice = 500
+        self.rice = 10
         self.buildings = []
         self.army = []
     def bd_count(self,i):
@@ -280,12 +320,38 @@ class player(object):
         for z in self.army:
             if str(z.type) == str(i):
                 x+=1
-        return x                    
+        return x
+    def hunger_count(self):
+        x = 0
+        for z in self.army:
+            if z.hungry == True:
+                x +=1
+        return x              
+    def defect_army(self):
+        for x in self.army:
+            if x.runaway == True:
+                self.army.remove(x)
+    def upkeep_update(self):
+        #calc how much rice will be taken on end turn
+        #number of soldiers + number of buildings with upkeep
+        intRice = 0
+        for x in self.army:
+            intRice += x.upkeep_rice
+        for x in self.buildings:
+            intRice += x.upkeep_rice
+        return intRice
+    def prod_update(self):
+        intProd = 0
+        for x in self.buildings:
+            if self.rice <= self.upkeep_update():
+                intProd += 0.8*int(x.prod_rice)
+            else:
+                intProd += x.prod_rice
+        return intProd
 
 objPlayer = player()
 objMarket = market()
 
 objGUI = mainGUI()
-
 objGUI.show_screen()
 
